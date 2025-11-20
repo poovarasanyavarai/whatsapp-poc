@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whatsapp
+  namespace: meta-whatsapp
+  labels:
+    app: whatsapp-webhook
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: whatsapp-webhook
+  template:
+    metadata:
+      labels:
+        app: whatsapp-webhook
+    spec:
+      containers:
+      - name: whatsapp
+        image: zinfradevv1.azurecr.io/meta-whatsapp:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        env:
+        - name: PORT
+          value: "8000"
+        - name: LOG_LEVEL
+          value: "INFO"
+        - name: WEBHOOK_URL
+          value: "/webhook"
+        - name: VERSION
+          value: "1.0.0"
+        - name: TOKEN
+          value: "EAAHb5EERGkEBP8KeyGHXTwtqV9R5erPWfl9Ag72z1shIXEQYjfsn1dZB1sqb0x7M7RZBqjAbPEvBCbj9Nay2JhWDVYsqYDWURw2nHBzJzfQKnwZAgJZBzTQ9ZCxq85rcBd8MOsLHI06VJVT6yWZAIBqIg7SPVAyQZAonVl88hyets6ypX9qGgXI5NB9O2rDjkl3SknaIvZBadBMNTlZBovQu92G6oesKdpFdnpnZBE"
+        - name: PHONE_NUMBER_ID
+          value: "921528817706587"
+        - name: YOUR_VERIFY_TOKEN
+          value: "yavaraiwhatsapp"
+        - name: MEDIA_STORAGE_PATH
+          value: "/app/media"
+        - name: Z_TRANSACT_ACCESS_TOKEN
+          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJtdXJ0YXouckB5YXZhci5haSIsImV4cCI6MTc2MzcyNTYxMCwidHJhbnNhY3QiOnRydWUsInBlcm1pc3Npb25zIjpbImFsbF93cml0ZSJdLCJvcmdhbml6YXRpb25faWQiOjEsInRyYW5zYWN0X3VzZXJfaWQiOjV9.gGMu3GxjCbdi2wD6tCkfwngBjayvTfBLrleXeph-V4A"
+        - name: Z_TRANSACT_API_URL
+          value: "https://api.z-transact.yavar.ai/v1"
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      
+      

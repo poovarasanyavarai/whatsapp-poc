@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: whatsapp-config
+  namespace: meta-whatsapp
+  labels:
+    app: whatsapp-webhook
+data:
+  # Non-sensitive configuration
+  WEBHOOK_URL: "/webhook"
+  LOG_LEVEL: "INFO"
+  PORT: "8000"
