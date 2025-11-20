@@ -173,12 +173,16 @@ async def upload_to_z_transact(file_content: bytes, filename: str, mime_type: st
         return None
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        # Use cookies for authentication like the original API call
+        headers = {
+            "accept": "application/json"
+        }
+        cookies = {
+            "access_token": CONFIG["Z_TRANSACT_ACCESS_TOKEN"]
+        }
+
+        async with httpx.AsyncClient(timeout=60.0, headers=headers, cookies=cookies) as client:
             url = f"{CONFIG['Z_TRANSACT_API_URL']}/documents"
-            headers = {
-                "Authorization": f"Bearer {CONFIG['Z_TRANSACT_ACCESS_TOKEN']}",
-                "accept": "application/json"
-            }
 
             # Prepare multipart form data
             files = {
@@ -187,7 +191,7 @@ async def upload_to_z_transact(file_content: bytes, filename: str, mime_type: st
 
             logger.info(f"Uploading to Z-Transact: {filename} ({len(file_content)} bytes)")
 
-            response = await client.post(url, headers=headers, files=files)
+            response = await client.post(url, files=files)
 
             if response.status_code == 200 or response.status_code == 201:
                 result = response.json()

@@ -39,7 +39,7 @@ spec:
         - name: MEDIA_STORAGE_PATH
           value: "/app/media"
         - name: Z_TRANSACT_ACCESS_TOKEN
-          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJtdXJ0YXouckB5YXZhci5haSIsImV4cCI6MTc2MzcyNTYxMCwidHJhbnNhY3QiOnRydWUsInBlcm1pc3Npb25zIjpbImFsbF93cml0ZSJdLCJvcmdhbml6YXRpb25faWQiOjEsInRyYW5zYWN0X3VzZXJfaWQiOjV9.gGMu3GxjCbdi2wD6tCkfwngBjayvTfBLrleXeph-V4A"
+          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJtdXJ0YXouckB5YXZhci5haSIsImV4cCI6MTc2MzczMTMzNCwidHJhbnNhY3QiOnRydWUsInBlcm1pc3Npb25zIjpbImFsbF93cml0ZSJdLCJvcmdhbml6YXRpb25faWQiOjEsInRyYW5zYWN0X3VzZXJfaWQiOjV9.g1gs8CUEhZO5QjhTtteKMaX3in5p6He7OzqgflmGizA"
         - name: Z_TRANSACT_API_URL
           value: "https://api.z-transact.yavar.ai/v1"
         resources:
