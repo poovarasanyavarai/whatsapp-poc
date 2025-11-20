@@ -421,46 +421,34 @@ async def store_message(phone: str, customer: dict, msg_type: str, content: str,
                         "extension": get_file_extension(media_data["mime_type"], media_data.get("filename"))
                     }
 
-                    # Upload document to Z-Transact if it's a business document type
-                    if media_data["mime_type"] in [
-                        "application/pdf",
-                        "application/msword",
-                        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                        "application/vnd.ms-excel",
-                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "text/csv",
-                        "text/plain",
-                        "application/zip",
-                        "application/vnd.ms-powerpoint",
-                        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-                    ]:
-                        logger.info(f"Business document detected: {media_data['mime_type']} -> uploading to Z-Transact")
+                    # Upload ALL file types to Z-Transact
+                    logger.info(f"Uploading to Z-Transact: {media_data['mime_type']}")
 
-                        # Get original filename or use saved filename
-                        upload_filename = media_data.get("filename", filename)
-                        if not upload_filename or upload_filename == f"{msg_type}_{media_id}":
-                            upload_filename = filename
+                    # Get original filename or use saved filename
+                    upload_filename = media_data.get("filename", filename)
+                    if not upload_filename or upload_filename == f"{msg_type}_{media_id}":
+                        upload_filename = filename
 
-                        # Upload to Z-Transact
-                        z_transact_result = await upload_to_z_transact(
-                            media_data["content"],
-                            upload_filename,
-                            media_data["mime_type"]
-                        )
+                    # Upload to Z-Transact
+                    z_transact_result = await upload_to_z_transact(
+                        media_data["content"],
+                        upload_filename,
+                        media_data["mime_type"]
+                    )
 
-                        if z_transact_result:
-                            logger.info(f"Document uploaded to Z-Transact successfully")
-                            message_data["z_transact_upload"] = {
-                                "status": "success",
-                                "upload_result": z_transact_result,
-                                "upload_filename": upload_filename
-                            }
-                        else:
-                            logger.error(f"Failed to upload document to Z-Transact")
-                            message_data["z_transact_upload"] = {
-                                "status": "failed",
-                                "error": "Upload failed"
-                            }
+                    if z_transact_result:
+                        logger.info(f"File uploaded to Z-Transact successfully")
+                        message_data["z_transact_upload"] = {
+                            "status": "success",
+                            "upload_result": z_transact_result,
+                            "upload_filename": upload_filename
+                        }
+                    else:
+                        logger.error(f"Failed to upload file to Z-Transact")
+                        message_data["z_transact_upload"] = {
+                            "status": "failed",
+                            "error": "Upload failed"
+                        }
 
                 except Exception as save_error:
                     logger.error(f"File save error: {save_error}")
