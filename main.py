@@ -347,6 +347,7 @@ async def process_message(data: dict):
     timestamp = msg.get("timestamp", "unknown")
 
     logger.info(f"Message: {msg_type} from {from_number}")
+    logger.info(f"#@#@#{msg_id}")
 
     # Extract customer info
     customer = {}
