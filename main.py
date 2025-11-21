@@ -10,6 +10,7 @@ import logging
 from datetime import datetime
 from pathlib import Path
 import uuid
+import asyncio
 
 # Setup logging
 logging.basicConfig(
@@ -203,6 +204,53 @@ async def upload_to_z_transact(file_content: bytes, filename: str, mime_type: st
 
     except Exception as e:
         logger.error(f"Z-Transact upload error: {e}")
+        return None
+
+async def process_z_transact_document(document_id: int) -> dict | None:
+    """Process uploaded document in Z-Transact API using the specified format"""
+    if not CONFIG["Z_TRANSACT_ACCESS_TOKEN"] or not CONFIG["Z_TRANSACT_API_URL"]:
+        logger.error("Z-Transact API configuration missing")
+        return None
+
+    url = f"{CONFIG['Z_TRANSACT_API_URL']}/documents/process"
+
+    # Prepare request payload exactly as specified
+    payload = {
+        "document_ids": [
+            document_id
+        ]
+    }
+
+    # Use the exact format specified: Cookie header with access_token
+    headers = {
+        "Content-Type": "application/json"
+    }
+    cookies = {
+        "access_token": CONFIG["Z_TRANSACT_ACCESS_TOKEN"]
+    }
+
+    logger.info(f"Processing Z-Transact document: {document_id}")
+    logger.info(f"Request URL: {url}")
+    logger.info(f"Request payload: {json.dumps(payload)}")
+    logger.info(f"Using cookie-based authentication with access_token")
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0, headers=headers, cookies=cookies) as client:
+            response = await client.post(url, json=payload)
+
+            logger.info(f"Process API response status: {response.status_code}")
+            logger.info(f"Process API response: {response.text}")
+
+            if response.status_code == 200 or response.status_code == 201:
+                result = response.json()
+                logger.info(f"Document processed successfully: {result}")
+                return result
+            else:
+                logger.error(f"Document processing failed: {response.status_code} - {response.text}")
+                return None
+
+    except Exception as e:
+        logger.error(f"Process API call failed: {e}")
         return None
 
 # Models
@@ -426,7 +474,7 @@ async def store_message(phone: str, customer: dict, msg_type: str, content: str,
 
                     # Get original filename or use saved filename
                     upload_filename = media_data.get("filename", filename)
-                    if not upload_filename or upload_filename == f"{msg_type}_{media_id}":
+                    if not upload_filename:
                         upload_filename = filename
 
                     # Upload to Z-Transact
@@ -443,6 +491,28 @@ async def store_message(phone: str, customer: dict, msg_type: str, content: str,
                             "upload_result": z_transact_result,
                             "upload_filename": upload_filename
                         }
+
+                        # Process the uploaded document
+                        document_id = z_transact_result.get("id")
+                        if document_id:
+                            logger.info(f"Waiting 30 seconds before processing document with ID: {document_id}")
+                            await asyncio.sleep(30)  # Wait 30 seconds before calling process API
+                            logger.info(f"Processing uploaded document with ID: {document_id}")
+                            process_result = await process_z_transact_document(document_id)
+                            if process_result:
+                                logger.info(f"Document processed successfully: {process_result}")
+                                message_data["z_transact_process"] = {
+                                    "status": "success",
+                                    "process_result": process_result
+                                }
+                            else:
+                                logger.error(f"Failed to process document with ID: {document_id}")
+                                message_data["z_transact_process"] = {
+                                    "status": "failed",
+                                    "error": "Process API call failed"
+                                }
+                        else:
+                            logger.error(f"No document ID found in upload result: {z_transact_result}")
                     else:
                         logger.error(f"Failed to upload file to Z-Transact")
                         message_data["z_transact_upload"] = {
@@ -536,58 +606,7 @@ async def health():
     """Health check"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
-# Z-Transact API Endpoints
-@app.post("/z-transact/upload")
-async def upload_document_to_z_transact(request: Request):
-    """Upload document to Z-Transact API"""
-    if not CONFIG["Z_TRANSACT_ACCESS_TOKEN"] or not CONFIG["Z_TRANSACT_API_URL"]:
-        return JSONResponse({
-            "status": "error",
-            "message": "Z-Transact API configuration missing",
-            "timestamp": datetime.now().isoformat()
-        }, status_code=500)
 
-    try:
-        form = await request.form()
-        file = form.get("file")
-
-        if not file:
-            return JSONResponse({
-                "status": "error",
-                "message": "No file provided",
-                "timestamp": datetime.now().isoformat()
-            }, status_code=400)
-
-        file_content = await file.read()
-        filename = file.filename
-        mime_type = file.content_type or "application/octet-stream"
-
-        logger.info(f"Uploading document: {filename} ({len(file_content)} bytes)")
-
-        # Upload to Z-Transact
-        result = await upload_to_z_transact(file_content, filename, mime_type)
-
-        if result:
-            return JSONResponse({
-                "status": "success",
-                "message": "Document uploaded successfully",
-                "data": result,
-                "timestamp": datetime.now().isoformat()
-            })
-        else:
-            return JSONResponse({
-                "status": "error",
-                "message": "Failed to upload document to Z-Transact",
-                "timestamp": datetime.now().isoformat()
-            }, status_code=500)
-
-    except Exception as e:
-        logger.error(f"Document upload error: {e}")
-        return JSONResponse({
-            "status": "error",
-            "message": f"Upload failed: {str(e)}",
-            "timestamp": datetime.now().isoformat()
-        }, status_code=500)
 
 if __name__ == "__main__":
     import uvicorn
