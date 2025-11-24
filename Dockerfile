@@ -24,15 +24,15 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy the application code
-COPY main.py .
+COPY . .
 
 # Create a non-root user
 RUN useradd --create-home --shell /bin/bash app && \
     chown -R app:app /app
 USER app
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Create necessary directories
+RUN mkdir -p /app/logs /app/media/documents /app/media/images /app/media/audio /app/media/video /app/media/other
 
 # Expose port
 EXPOSE 8000

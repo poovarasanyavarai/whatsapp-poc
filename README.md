@@ -30,35 +30,80 @@ nano .env
 
 ### 2. Environment Variables
 
-Update `.env` file with your WhatsApp Business API credentials:
-
-```env
-WHATSAPP_VERIFY_TOKEN=your_verify_token_here
-WHATSAPP_ACCESS_TOKEN=your_access_token_here
-WHATSAPP_PHONE_NUMBER_ID=your_phone_number_id_here
-WHATSAPP_APP_SECRET=your_app_secret_here
-```
-
-### 3. Run with Docker
+Copy and update the environment file with your credentials:
 
 ```bash
-# Using docker-compose (recommended)
-docker-compose up -d
-
-# Or using Docker directly
-docker build -t whatsapp-webhook .
-docker run -p 8000:8000 --env-file .env whatsapp-webhook
+cp .env.example .env
 ```
 
-### 4. Run Locally
+Update `.env` file with your WhatsApp Business API and Z-Transact credentials:
+
+```env
+# WhatsApp Business API Configuration
+YOUR_VERIFY_TOKEN=your_verify_token_here
+TOKEN=your_access_token_here
+PHONE_NUMBER_ID=your_phone_number_id_here
+WHATSAPP_APP_SECRET=your_app_secret_here
+
+# Z-Transact API Configuration
+Z_TRANSACT_ACCESS_TOKEN=your_z_transact_access_token_here
+Z_TRANSACT_API_URL=https://api.z-transact.yavar.ai/v1
+
+# Webhook Configuration
+WEBHOOK_URL=/webhook
+PORT=8000
+
+# File Storage Configuration
+MEDIA_STORAGE_PATH=/app/media
+```
+
+### 3. Run Locally with Containers
+
+**Option A: Using Docker Compose (Recommended)**
+
+```bash
+# Build and start the container in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop the container
+docker-compose down
+```
+
+The application will be available at `http://localhost:8001`
+
+**Option B: Using Docker directly**
+
+```bash
+# Build the image
+docker build -t whatsapp-webhook .
+
+# Run the container
+docker run -d \
+  --name whatsapp-webhook \
+  -p 8001:8000 \
+  --env-file .env \
+  -v $(pwd)/logs:/app/logs \
+  -v $(pwd)/media:/app/media \
+  whatsapp-webhook
+```
+
+### 4. Run Without Containers (Local Development)
 
 ```bash
 # Install dependencies
 pip install -r requirements.txt
 
+# Load environment variables
+export $(grep -v '^#' .env | xargs)
+
 # Run the application
-uvicorn main:app --reload
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+The application will be available at `http://localhost:8000`
 
 ## API Endpoints
 
