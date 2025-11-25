@@ -36,12 +36,23 @@ spec:
           value: "921528817706587"
         - name: YOUR_VERIFY_TOKEN
           value: "yavaraiwhatsapp"
+        - name: WHATSAPP_APP_SECRET
+          value: "your_app_secret_here"
         - name: MEDIA_STORAGE_PATH
           value: "/app/media"
         - name: Z_TRANSACT_ACCESS_TOKEN
-          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NTEsImVtYWlsIjoibXVydGF6LnJAeWF2YXIuYWkiLCJleHAiOjE3NjYzMjQ3NjMsIm9yZ2FuaXphdGlvbl9pZCI6NCwicGVybWlzc2lvbnMiOlsiYWxsX3dyaXRlIl19.AnvMxplCab6HX9RuSTxITmiYd4St-oj3x0AswqDjtlg"
+          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6NSwiZW1haWwiOiJtdXJ0YXouckB5YXZhci5haSIsImV4cCI6MTc2MzczMTMzNCwidHJhbnNhY3QiOnRydWUsInBlcm1pc3Npb25zIjpbImFsbF93cml0ZSJdLCJvcmdhbml6YXRpb25faWQiOjEsInRyYW5zYWN0X3VzZXJfaWQiOjV9.g1gs8CUEhZO5QjhTtteKMaX3in5p6He7OzqgflmGizA"
         - name: Z_TRANSACT_API_URL
-          value: "https://api.stg.z-transact.yavar.ai/v1"
+          value: "https://api.z-transact.yavar.ai/v1"
+        # Zagent API Configuration (for message testing)
+        - name: ZAGENT_API_URL
+          value: "https://app.zagent.stage.yavar.ai/v2"
+        - name: ZAGENT_ACCESS_TOKEN
+          value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJib3RfdXVpZCI6ImU5YmJmN2I3LTQ0ZDgtNGE4My1hYTA1LTgwMTA1ZTdjNGJkNyIsImFjY291bnRfaWQiOiI1NjMyYThiMi03ZWVmLTVmYjEtOTkyOS0xNzJhZDFmMDU4NDQiLCJpZCI6IjhhN2U5ZWExLTI2NjktNGEwZS05NjBmLWM4MjA1OTZmMGRmYiIsImVtYWlsIjoid2hhdHNhcHBAeW9wbWFpbC5jb20iLCJhY2Nlc3NfdG9rZW5faWQiOiIzMTM4NzQ2OS0wYjhhLTRkM2YtOGM2YS0zYWU1ZTY2ZTM5ZjAifQ.OAuJq2WVP6yatrg6IesMhK7wv9lsx6aZ5qr-UJHO9Zg"
+        - name: ZAGENT_BOT_UUID
+          value: "e9bbf7b7-44d8-4a83-aa05-80105e7c4bd7"
+        - name: ZAGENT_CONVERSATION_ID
+          value: "812"
         resources:
           requests:
             cpu: "100m"

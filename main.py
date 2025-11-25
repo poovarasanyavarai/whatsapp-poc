@@ -7,6 +7,7 @@ from datetime import datetime
 
 # Import modules from new structure
 from src.api.whatsapp import process_message, verify_signature
+from src.services.z_agent import send_message_to_zagent, test_zagent_connection
 from src.config import logger
 
 app = FastAPI(title="WhatsApp Webhook API", version="1.0.0")
@@ -90,6 +91,68 @@ async def root():
 async def health():
     """Health check"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+
+@app.get("/test/zagent")
+async def test_zagent():
+    """Test Zagent API connection"""
+    is_connected = await test_zagent_connection()
+    return {
+        "status": "success" if is_connected else "failed",
+        "zagent_connected": is_connected,
+        "timestamp": datetime.now().isoformat()
+    }
+
+@app.post("/test/zagent/message")
+async def test_zagent_message(request: dict):
+    """Send test message to Zagent API"""
+    message = request.get("message", "Hello, this is a test message")
+    conversation_id = request.get("conversation_id")
+
+    result = await send_message_to_zagent(message, conversation_id)
+
+    if result and result.get("success", False):
+        return {
+            "status": "success",
+            "message": "Message processed successfully",
+            "user_input": message,
+            "bot_reply": result["bot_response"],
+            "response_details": {
+                "message_id": result.get("message_id"),
+                "end": result.get("end"),
+                "end_reason": result.get("end_reason"),
+                "time_taken": result.get("time_taken"),
+                "should_connect_agent": result.get("should_connect_agent")
+            },
+            "timestamp": datetime.now().isoformat()
+        }
+    else:
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": "Failed to process message with Zagent",
+                "error_details": result.get("error", "Unknown error") if result else "No response from Zagent",
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+
+@app.post("/test/echo")
+async def test_echo(request: dict):
+    """Simple echo endpoint for testing response format"""
+    user_message = request.get("message", "Hello")
+    return {
+        "status": "success",
+        "user_input": user_message,
+        "bot_reply": f"Echo: {user_message}",
+        "response_details": {
+            "message_id": 12345,
+            "end": True,
+            "end_reason": "completed",
+            "time_taken": 0.1,
+            "should_connect_agent": False
+        },
+        "timestamp": datetime.now().isoformat()
+    }
 
 
 if __name__ == "__main__":
