@@ -148,8 +148,8 @@ async def store_message(phone: str, customer: dict, msg_type: str, content: str,
                         # Process the uploaded document
                         document_id = z_transact_result.get("id")
                         if document_id:
-                            logger.info(f"Waiting 30 seconds before processing document with ID: {document_id}")
-                            await asyncio.sleep(30)  # Wait 30 seconds before calling process API
+                            logger.info(f"Waiting 60 seconds before processing document with ID: {document_id}")
+                            await asyncio.sleep(60)  # Wait 30 seconds before calling process API
                             logger.info(f"Processing uploaded document with ID: {document_id}")
                             process_result = await process_z_transact_document(document_id)
                             if process_result:
