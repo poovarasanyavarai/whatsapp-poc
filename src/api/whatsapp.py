@@ -8,6 +8,8 @@ from pathlib import Path
 from src.config import CONFIG, logger, ensure_media_directory
 from src.services.z_transact import upload_to_z_transact, process_z_transact_document
 from src.utils.file_handler import get_file_extension, get_media_subdirectory, generate_safe_filename, validate_file_size
+from src.services.media_processor import media_processor
+from src.utils.message_deduplicator import message_deduplicator
 
 async def download_media(media_id: str) -> dict | None:
     """Download media from WhatsApp - returns dict with file data and metadata"""
@@ -185,7 +187,7 @@ async def store_message(phone: str, customer: dict, msg_type: str, content: str,
         raise
 
 async def process_message(data: dict):
-    """Process incoming message"""
+    """Process incoming message with immediate response and async media handling"""
     logger.info(f"Processing message: {list(data.keys())}")
 
     if "messages" not in data:
@@ -202,6 +204,19 @@ async def process_message(data: dict):
     logger.info(f"Message: {msg_type} from {from_number}")
     logger.info(f"#@#@#{msg_id}")
 
+    # Create message data for deduplication
+    message_data = {
+        "id": msg_id,
+        "from": from_number,
+        "timestamp": timestamp,
+        "type": msg_type
+    }
+
+    # Check for duplicate messages
+    if message_deduplicator.is_duplicate(message_data):
+        logger.info(f"Duplicate message detected and skipped: {msg_id}")
+        return
+
     # Extract customer info
     customer = {}
     if "contacts" in data:
@@ -214,60 +229,84 @@ async def process_message(data: dict):
 
     # Extract content based on type
     content = ""
-    downloaded_media = None
     media_id = None
-    media_details = {}
 
-    if msg_type in ["image", "video"]:
-        media_data = msg[msg_type]
-        content = media_data.get("caption", "")
-        media_id = media_data["id"]
-
-        media_details = {
-            "id": media_id,
-            "caption": content,
-            "mime_type": media_data.get("mime_type", "unknown"),
-            "sha256": media_data.get("sha256", "unknown"),
-            "file_size": media_data.get("file_size", 0)
-        }
-
-        logger.info(f"Media: ID={media_id}, MIME={media_details['mime_type']}, Size={media_details['file_size']}")
-        downloaded_media = await download_media(media_id)
-
-    elif msg_type == "text":
+    if msg_type == "text":
+        # Handle text messages synchronously (fast)
         content = msg["text"]["body"]
         logger.info(f"Text: {content[:50]}...")
 
-    elif msg_type in ["audio", "document", "sticker"]:
-        media_data = msg[msg_type]
-        media_id = media_data["id"]
-        file_name = media_data.get("filename", f"{msg_type}_{media_id}")
-        mime_type = media_data.get("mime_type", "unknown")
-        sha256 = media_data.get("sha256", "unknown")
-        file_size = media_data.get("file_size", 0)
+        try:
+            await store_message(from_number, customer, msg_type, content, None)
+            logger.info("Text message processed successfully")
+        except Exception as e:
+            logger.error(f"Text message storage failed: {e}")
 
-        logger.info(f"{msg_type}: {file_name} ({file_size} bytes)")
+    elif msg_type in ["image", "video", "audio", "document", "sticker"]:
+        # Handle media messages asynchronously (slow)
+        logger.info(f"Media message detected: {msg_type}")
 
-        metadata_url = f"https://graph.facebook.com/v18.0/{media_id}"
-        logger.info(f"Metadata URL: {metadata_url}")
+        if msg_type in ["image", "video"]:
+            media_data = msg[msg_type]
+            content = media_data.get("caption", "")
+            media_id = media_data["id"]
 
-        downloaded_media = await download_media(media_id)
+            media_details = {
+                "id": media_id,
+                "caption": content,
+                "mime_type": media_data.get("mime_type", "unknown"),
+                "sha256": media_data.get("sha256", "unknown"),
+                "file_size": media_data.get("file_size", 0)
+            }
 
-        if downloaded_media:
-            logger.info(f"{msg_type} downloaded successfully")
+            logger.info(f"Media details: ID={media_id}, MIME={media_details['mime_type']}, Size={media_details['file_size']}")
+
+        elif msg_type in ["audio", "document", "sticker"]:
+            media_data = msg[msg_type]
+            media_id = media_data["id"]
+            file_name = media_data.get("filename", f"{msg_type}_{media_id}")
+            mime_type = media_data.get("mime_type", "unknown")
+            file_size = media_data.get("file_size", 0)
+
+            logger.info(f"{msg_type}: {file_name} ({file_size} bytes)")
+
+        # Queue media for async processing (NON-BLOCKING)
+        if media_id:
+            try:
+                # Store basic message info immediately
+                basic_message_data = {
+                    "phone": from_number,
+                    "customer": customer,
+                    "type": msg_type,
+                    "content": content,
+                    "has_media": True,
+                    "media_id": media_id,
+                    "timestamp": datetime.now(),
+                    "status": "queued_for_processing"
+                }
+
+                # Save basic message info
+                await store_message(from_number, customer, msg_type, content, None)
+                logger.info(f"Media message queued successfully: {media_id}")
+
+                # Queue for async processing
+                await media_processor.queue_media_for_processing(
+                    message_data=message_data,
+                    media_id=media_id,
+                    msg_type=msg_type,
+                    content=content,
+                    customer=customer
+                )
+
+                logger.info(f"Media queued for async processing: {media_id}")
+
+            except Exception as e:
+                logger.error(f"Failed to queue media for processing: {e}")
         else:
-            logger.warning(f"{msg_type} download failed")
+            logger.warning(f"No media ID found for {msg_type} message")
 
     else:
         logger.warning(f"Unknown message type: {msg_type}")
-
-    # Store message
-    try:
-        await store_message(from_number, customer, msg_type, content, downloaded_media)
-        logger.info("Message processed successfully")
-    except Exception as e:
-        logger.error(f"Message storage failed: {e}")
-        raise
 
 def verify_signature(body: bytes, signature: str) -> bool:
     """Verify webhook signature"""

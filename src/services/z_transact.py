@@ -5,8 +5,10 @@ from src.config import CONFIG, logger
 
 async def upload_to_z_transact(file_content: bytes, filename: str, mime_type: str) -> dict | None:
     """Upload file to Z-Transact API"""
+    logger.info(f"🚀 Z-TRANSACT API: Starting document upload - Filename: {filename}, Size: {len(file_content)} bytes, MIME: {mime_type}")
+
     if not CONFIG["Z_TRANSACT_ACCESS_TOKEN"] or not CONFIG["Z_TRANSACT_API_URL"]:
-        logger.error("Z-Transact API configuration missing")
+        logger.error("❌ Z-TRANSACT API: Configuration missing - ACCESS_TOKEN or API_URL not set")
         return None
 
     try:
@@ -26,20 +28,24 @@ async def upload_to_z_transact(file_content: bytes, filename: str, mime_type: st
                 "file": (filename, file_content, mime_type)
             }
 
-            logger.info(f"Uploading to Z-Transact: {filename} ({len(file_content)} bytes)")
+            logger.info(f"📤 Z-TRANSACT API: Upload request - URL: {url}")
+            logger.info(f"🔐 Z-TRANSACT API: Using cookie authentication - Token: {CONFIG['Z_TRANSACT_ACCESS_TOKEN'][:20]}...")
 
             response = await client.post(url, files=files)
 
+            logger.info(f"📊 Z-TRANSACT API: Upload response - Status: {response.status_code}, Headers: {dict(response.headers)}")
+
             if response.status_code == 200 or response.status_code == 201:
                 result = response.json()
-                logger.info(f"Successfully uploaded to Z-Transact: {result}")
+                document_id = result.get("id", "unknown")
+                logger.info(f"✅ Z-TRANSACT API: Upload successful - Document ID: {document_id}, Full Response: {result}")
                 return result
             else:
-                logger.error(f"Z-Transact upload failed: {response.status_code} - {response.text}")
+                logger.error(f"❌ Z-TRANSACT API: Upload failed - Status: {response.status_code}, Response: {response.text}")
                 return None
 
     except Exception as e:
-        logger.error(f"Z-Transact upload error: {e}")
+        logger.error(f"💥 Z-TRANSACT API: Upload error - {e}")
         return None
 
 async def process_z_transact_document(document_id: int) -> dict | None:
